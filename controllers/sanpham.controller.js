@@ -816,39 +816,33 @@ export const deleteProduct = async (req, res) => {
 export const getProductInfo = async (req, res) => {
     try {
         const { id } = req.params;
-        const product = await SanPham.findById(id)
-            .populate('idDM idCH')
-            .select('tenSP moTaSP batchId idDM ngaySX ngayTH VatTuHTCT serial nguonGoc phanLoai');
-        if (!product) {
-            return res.status(404).json({ message: "Sản phẩm không tìm thấy!" });
+
+        // Lấy thông tin từ blockchain
+        const productDetail = await contract.getProductDetails(id);
+
+        if (!productDetail || !productDetail.productId) {
+            return res.status(404).json({ message: "Sản phẩm không tồn tại trên blockchain!" });
         }
+
+        // Định dạng dữ liệu phản hồi
         const productInfo = {
-            tenSP: product.tenSP,
-            moTaSP: product.moTaSP,
-            batchId: product.batchId,
-            idDM: product.idDM, 
-            ngaySX: product.ngaySX,
-            ngayTH: product.ngayTH,
-            VatTuHTCT: product.VatTuHTCT,
-            nguonGoc: product.nguonGoc,
-            serial: product.serial,
-            idCH: {
-                tenCH: product.idCH?.tenCH, 
-                anhCH: product.idCH?.anhCH,
-            },
-            phanLoai: product.phanLoai.map(loai => ({
-                idPL: loai.idPL,
-                tenLoai: loai.tenLoai,
-                giaLoai: loai.giaLoai,
-                donVi: loai.donVi,
-                khuyenMai: loai.khuyenMai, 
-                khoHang: loai.khoHang,
-                daBan: loai.daBan,
-            }))
+            productId: productDetail.productId,
+            productName: productDetail.productName,
+            storeName: productDetail.storeName,
+            seedType: productDetail.seedType,
+            sowingDate: productDetail.sowingDate,
+            harvestingDate: productDetail.harvestingDate,
+            packagingDate: productDetail.packagingDate,
+            expirationDate: productDetail.expirationDate,
+            inspectorName: productDetail.inspectorName,
+            isCertified: productDetail.isCertified,
+            certifierName: productDetail.certifierName,
+            certifierImageCid: productDetail.certifierImageCid,
         };
+
         res.json({ product: productInfo });
     } catch (error) {
-        console.error("Lỗi khi lấy sản phẩm:", error);
+        console.error("Lỗi khi lấy dữ liệu từ blockchain:", error);
         res.status(500).json({ message: "Lỗi server, vui lòng thử lại!" });
     }
 };
